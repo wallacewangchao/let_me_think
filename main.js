@@ -18,46 +18,44 @@ const out_ctx3 = out_cnv3.getContext('2d')
 
 const radio_btns = document.getElementsByName('options');
 const radio_btn_labels = document.getElementsByName('prediction_labels');
-let select = document.getElementById('dropdown_labels');
+// let select = document.getElementById('dropdown_labels');
 
 var scale,  isMouseDown = false,  iter = 200,
     xMin, yMin, xMax, yMax
 var model, baseModel, mobilenet, img, actMax = 36., chkMax = true,
   index = 849, weightsPred, modelReady = false;
 
+let act_data;
+let act_average;
+let act_max;
+let set_act_max = 36; 
+
 rect_cnv.addEventListener('mousemove', drag, false);
 rect_cnv.addEventListener('mousedown', start_drag, false);
 window.addEventListener('mouseup', stop_drag, false);
 window.addEventListener("paste", pasteHandler);
 
-// fitToContainer(rect_cnv);
-// fitToContainer(cnv);
-// function fitToContainer(canvas){
-//   canvas.style.width='100%';
-//   canvas.style.height='100%';
-//   canvas.width  = canvas.offsetWidth;
-//   canvas.height = canvas.offsetHeight;
+$(".btn").mousemove(function(element) {
+  $(this).removeClass("focus");
+});
+
+// $(".btn").mouseup(function(){
+//   $(this).blur();
+// })
+
+// for (let value of Object.values(IMAGENET_CLASSES)) {
+//   let option = document.createElement('option');
+//   // console.log(option);
+//   option.text = value;
+//   select.appendChild(option);
 // }
 
-// function fitToImage(canvas,img_width, img_height){
-//   canvas.width = img_width;
-//   canvas.height = img_height;
-// }
-
-for (let value of Object.values(IMAGENET_CLASSES)) {
-  let option = document.createElement('option');
-  // console.log(option);
-  option.text = value;
-  select.appendChild(option);
-}
-
-function change_label_Selcetion(){
+function check_radio_Index(){
   for (let i=0; i < radio_btns.length; i ++){
     if (radio_btns[i].checked){
-      makeModel(radio_btns[i].value);
+      return i;
     }
   }
-  classify();
 }
 
 //paste handler
@@ -125,17 +123,19 @@ function stop_drag(ev){
   rect();
   ev.preventDefault();
 }
+
 async function rect(){
   out_ctx.fillStyle = "white";
   out_ctx.fillRect(0,0, IMAGE_SIZE, IMAGE_SIZE);
   out_ctx.drawImage(img, xMin/scale, yMin/scale,
      (xMax - xMin)/scale, (yMax - yMin)/scale, 0,0, IMAGE_SIZE, IMAGE_SIZE);
-  let ti = performance.now()
+  let ti = performance.now();
   await classify();
   console.log(Math.floor(xMin/scale) +","+ Math.floor(yMin/scale) +
     " : " + Math.floor((xMax-xMin)/scale) +"," + Math.floor((yMax-yMin)/scale) +
     " / " + Math.round(performance.now() - ti) + " ms");
 }
+
 function getXY(ev){
   var rect = cnv.getBoundingClientRect()
   return [ev.clientX - rect.left, ev.clientY - rect.top]
@@ -156,7 +156,7 @@ async function loadLayersModel(modelUrl) {
   const layerPred = await mobilenet.getLayer('conv_preds');
 //  const weight985 = layerPred.getWeights()[0].slice([0,0,0,985],[1,1,-1,1]);
   weightsPred = layerPred.getWeights()[0];
-  makeModel(index);
+  // makeModel(index);
 }
 async function makeModel(ind) {
   if(modelReady) model.dispose();
@@ -170,7 +170,7 @@ async function makeModel(ind) {
       })
     ]
   });
-//  await classify();
+  // await classify();
 }
 async function classify() {
   const batched = tf.tidy( () => {
@@ -181,7 +181,7 @@ async function classify() {
   const softmax = mobilenet.predict(batched);
   const predictions = await getTopKClassesKeras(softmax, topK);
   
-  let str = "probability / class / name";
+  let str = "I think it is a:";
   // for(let i=0; i<topK; i++)
   //   str += "\n" + predictions[i].probability.toFixed(3) + " - " + predictions[i].classInd +
   //     " - " + predictions[i].className;
@@ -193,49 +193,67 @@ async function classify() {
     radio_btn_labels[i].innerText = predictions[i].className + " - " + (predictions[i].probability * 100).toFixed(1) + "%";
   }
 
-  document.getElementById('user_input').innerText = predictions[0].className;
+  // document.getElementById('user_input').innerText = predictions[0].className;
+  let radio_btn_ind = check_radio_Index();
+  makeModel(predictions[radio_btn_ind].classInd);
 
   const basePredict = baseModel.predict(batched);
+  console.log(basePredict);
   const predicted = model.predict(basePredict);
-  const data = predicted.dataSync();
+  // const data = predicted.dataSync();
+  act_data = predicted.dataSync();
+
   basePredict.dispose();
   predicted.dispose();
-  let ma = data[0], sum = ma;
+  let ma = act_data[0], sum = ma;
+  // cacluate the max activation and average activation 
   for(let i = 1; i < 49; i++ ){
-    let di = data[i];
+    let di = act_data[i];
     sum += di;
+
+    // cacluate the max activation
     if(ma < di)  ma = di;
   }
-  console.log("max= " + ma.toFixed(2) + ", av= " + (sum/49).toFixed(2));
-  if(chkMax) ma = actMax;
+  act_max = ma;
+  act_average = sum/49;
+  console.log("max= " + act_max.toFixed(2) + ", av= " + act_average.toFixed(2));
 
+  // if(chkMax) act_max = actMax;
 
+  // old visualisation with black cover
   // const imgData = out_ctx2.createImageData(7, 7);
   // let t = 0;
   // for(let i = 0; i < 7; i++ ){
   //   for(let j = 0; j < 7; j++, t++ ){
-  //     imgData.data[t*4 + 3] = Math.max(255*(1 - Math.exp(0.1*(-data[t] + ma))), 0);
-  //     console.log( Math.max((1 - Math.exp(0.1*(-data[t] + ma))), 0) );
+  //     imgData.data[t*4 + 3] = Math.max(255*(1 - Math.exp(0.1*(-act_data[t] + ma))), 0);
+  //     console.log( Math.max((1 - Math.exp(0.1*(-act_data[t] + ma))), 0) );
   //   }
   // }
   // const imageBitmap = await createImageBitmap(imgData);
   // out_ctx2.clearRect(0,0, 224,224);
   // out_ctx2.drawImage(imageBitmap, 0,0, 224,224);
 
-  // Draw the ellipse
+  // new visualisation with reddots
+  drawDots();
+}
+
+function drawDots(){
+  // if(chkMax) act_max = set_act_max;
   let k = 0;
   out_ctx3.clearRect(0,0, 224,224);
   for(let i=0; i < 7; i++){
     for (let j=0; j < 7; j++, k++){
       out_ctx3.beginPath();
       out_ctx3.ellipse(16 + [j]*32, 16 + [i] *32, 16, 16, 0, 0, 2 * Math.PI);
-      let alpha = Math.max((1 - Math.exp(0.035*(-data[k] + ma))), 0);
+      let alpha = Math.max((1 - Math.exp(0.035*(-act_data[k] + set_act_max))), 0);
       out_ctx3.fillStyle = 'rgba(255, 0, 0,' + alpha + ')';
       out_ctx3.fill();
     }
   }
 
+  console.log("set_act_max: " + set_act_max);
 }
+
 
 const init = async () => {
   await loadLayersModel('https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/model.json');
