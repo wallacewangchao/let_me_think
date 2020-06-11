@@ -73,6 +73,20 @@
         cursor: pointer;
       }
 
+      .info_btn{
+        border-radius: 20px;
+        font-size: 80%;
+        padding-top: 0;
+        padding-bottom: 0;
+        padding-left: 1vh;
+        padding-right: 1vh;
+      }
+      
+      .btn:focus {
+        outline: none;
+        box-shadow: none;
+      }
+
       #toggle_btns{
         width: 224px;
       }
@@ -85,7 +99,7 @@
     <div class="col-12 text-left">
       <p class="font-weight-light display-3">Let me see, this is...</p>
       <p class="font-weight-light">Press “control + v” to paste an image, use mouse to select a region
-        <br>Red areas are where I pay more attention to</p>
+        <br>Red areas are where I pay more attention to. <button type="button" class="btn btn-outline-secondary info_btn" data-toggle="modal" data-target="#about_CAM">More</button> </p>
     </div>
   </div>
   <div class="row h-50" id="main_content_row">
@@ -144,6 +158,32 @@
 
   </div>
 </div>
+<!-- Modal -->
+<div class="modal fade" id="about_CAM" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">How to visualise the attention of AI?</h5>
+      </div>
+      <div class="modal-body">
+        <p>Here we introduce the class activation map, which is a technique for generating class activation maps using the global average pooling (GAP) in CNNs. A class activation map for a particular category indicates the discriminative image regions used by the CNN to identify that category.</p> 
+        <p>More information can be found in  
+          <a href="http://cnnlocalization.csail.mit.edu/">this paper</a>
+        </p>
+        <p>This website is made by 
+          <a href="https://chaoswang.wordpress.com/">Chao Wang</a>
+          based on the framwork of 
+          <a href="https://www.ibiblio.org/e-notes/ml/notes.htm">TensorFlow.js notes</a> probided by 
+          <a href="https://twitter.com/EvgenyDemidov">Evgeny Demidov</a>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="main.js"></script>
 
 <iframe frameborder="0" scrolling="no" style="background-color: transparent; border: 0px; display: none;" src="./Heat map demo_files/saved_resource.html">
